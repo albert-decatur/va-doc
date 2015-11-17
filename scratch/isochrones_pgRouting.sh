@@ -22,25 +22,30 @@ function isochrone_sql {
 	# then convert those into a convex hull (effectively the driving isochrone)
 	# NB: hard coded values still there
 	echo "
-select sum(pop10) as pop 
-from 
-	$6
-	join (select pop_id
-	from
-		$5
-		join (select 
-			'$1'::int as service_loc_id,
-			edge_table_vertices_pgr.id as node_id 
-		from 
-			edge_table_vertices_pgr 
-			join ( 
-			select 
-				id1 
-				from 
-					pgr_drivingdistance('SELECT gid AS id,source,target,cost_time as cost,rcost_time as reverse_cost FROM edge_table',(select node_id from $4 where doc_id=$1)::int,$3,false,true)) as driving_distance 
-			on edge_table_vertices_pgr.id = driving_distance.id1) as serivce_area_nodes
-	on ${5}.node_id = serivce_area_nodes.node_id) as toJoin
-on ${6}.blockid10 = toJoin.pop_id;
+select doc_id,pcp,pop,pcp/pop*100000 as docs_per_100000 from
+	$2
+	join
+	(select sum(pop10) as pop,$1 as doc_id
+	from 
+		$6
+		join (select pop_id
+		from
+			$5
+			join (select 
+				'$1'::int as service_loc_id,
+				edge_table_vertices_pgr.id as node_id 
+			from 
+				edge_table_vertices_pgr 
+				join ( 
+				select 
+					id1 
+					from 
+						pgr_drivingdistance('SELECT gid AS id,source,target,cost_time as cost,rcost_time as reverse_cost FROM edge_table',(select node_id from $4 where doc_id=$1)::int,$3,false,true)) as driving_distance 
+				on edge_table_vertices_pgr.id = driving_distance.id1) as serivce_area_nodes
+		on ${5}.node_id = serivce_area_nodes.node_id) as toJoin
+	on ${6}.blockid10 = toJoin.pop_id) as pop_within_serviceArea
+on ${2}.objectid = $1
+;
 "
 }
 export -f isochrone_sql
